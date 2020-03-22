@@ -37,6 +37,9 @@ module Outputable (
         speakNth, speakN, speakNOf, plural, isOrAre, doOrDoes,
         unicodeSyntax,
 
+        jsonDict,
+        jsonList,
+
         coloured, keyword,
 
         -- * Converting 'SDoc' into strings and outputing it
@@ -1212,3 +1215,17 @@ pprDebugAndThen dflags cont heading pretty_msg
  = cont (showSDocDump dflags doc)
  where
      doc = sep [heading, nest 2 pretty_msg]
+
+jsonDict :: [(String, SDoc)] -> SDoc
+jsonDict xs = char '{'
+        $+$ nest 2 ( vcat ( punctuate comma ( map process xs ) ) )
+        $+$ char '}'
+    where
+        process :: (String, SDoc) -> SDoc
+        process (n, d) = doubleQuotes ( text n )
+                     <+> colon $+$ nest 2 d
+
+jsonList :: [SDoc] -> SDoc
+jsonList xs = char '['
+        $+$ nest 2 ( vcat ( punctuate comma xs ) )
+        $+$ char ']'

@@ -151,8 +151,8 @@ ppr_expr :: OutputableBndr b => (SDoc -> SDoc) -> Expr b -> SDoc
         -- an atomic value (e.g. function args)
 
 ppr_expr add_par (Var name)
- | isJoinId name               = add_par ((text "jump") <+> ppr name)
- | otherwise                   = ppr name
+ | isJoinId name               = doubleQuotes $ add_par ((text "jump") <+> ppr name)
+ | otherwise                   = doubleQuotes $ ppr name
 ppr_expr add_par (Type ty)     = add_par (text "TYPE:" <+> ppr ty)       -- Weird
 ppr_expr add_par (Coercion co) = add_par (text "CO:" <+> ppr co)
 ppr_expr add_par (Lit lit)     = pprLiteral add_par lit
@@ -214,21 +214,31 @@ ppr_expr add_par (Case expr var ty [(con,args,rhs)])
              , pprCoreExpr rhs
              ]
     else add_par $
-         sep [sep [sep [ text "case" <+> pprCoreExpr expr
-                       , whenPprDebug (text "return" <+> ppr ty)
-                       , text "of" <+> ppr_bndr var
-                       ]
-                  , char '{' <+> ppr_case_pat con args <+> arrow
-                  ]
-              , pprCoreExpr rhs
-              , char '}'
-              ]
+        jsonDict [
+            ("type",   doubleQuotes $ text "case##1"),
+            ("case",   pprCoreExpr expr),
+            ("return", ppr ty),
+            ("of",     ppr_bndr var),
+            ("body",   jsonDict
+                [
+                    ("args", ppr_case_pat con args),
+                    ("rhs",    pprCoreExpr rhs)
+                ]
+            )
+        ]
   where
     ppr_bndr = pprBndr CaseBind
 
 ppr_expr add_par (Case expr var ty alts)
   = add_par $
-    sep [sep [text "case"
+      -- jsonDict [
+      --     ("type", doubleQuotes $ text "case##2"),
+      --     ("case", pprCoreExpr expr),
+      --     ("return", ppr ty),
+      --     ("of", ppr_bndr var),
+      --     ("body", jsonList $ map pprCoreAlt alts)
+      -- ]
+    sep [sep [text "case##2"
                 <+> pprCoreExpr expr
                 <+> whenPprDebug (text "return" <+> ppr ty),
               text "of" <+> ppr_bndr var <+> char '{'],
